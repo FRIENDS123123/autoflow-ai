@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Zap, Bot, Puzzle, Rocket, ArrowRight, Github } from "lucide-react";
+import { Zap, Bot, Puzzle, Rocket, ArrowRight } from "lucide-react";
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
@@ -163,8 +163,8 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <a href="#" className="hover:text-white/60 transition-colors">Privacy</a>
           <a href="#" className="hover:text-white/60 transition-colors">Terms</a>
-          <a href="#" className="hover:text-white/60 transition-colors flex items-center gap-1">
-            <Github size={13} /> GitHub
+          <a href="#" className="hover:text-white/60 transition-colors">
+            GitHub
           </a>
         </div>
       </footer>
