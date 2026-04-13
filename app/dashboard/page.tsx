@@ -3,25 +3,86 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Zap, Plus, LogOut, LayoutGrid } from "lucide-react";
+import { Zap, Plus, LogOut, LayoutGrid, Play, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
+import type { Automation } from "@/lib/database.types";
+
+const APP_ICONS: Record<string, string> = {
+  slack: "💬", notion: "📝", github: "🐙", gmail: "📧", sheets: "📊",
+  airtable: "🗂️", stripe: "💳", discord: "🎮", trello: "📋",
+  twitter: "🐦", webhook: "🔗", ai: "🤖", schedule: "⏰", email: "📨",
+};
+
+function getIcon(app: string): string {
+  const key = app.toLowerCase();
+  for (const [k, v] of Object.entries(APP_ICONS)) {
+    if (key.includes(k)) return v;
+  }
+  return "⚡";
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+}
+
+// Loading skeleton for a single card
+function CardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 animate-pulse">
+      <div className="h-5 w-2/3 bg-white/10 rounded mb-3" />
+      <div className="h-3 w-full bg-white/5 rounded mb-2" />
+      <div className="h-3 w-1/2 bg-white/5 rounded mb-4" />
+      <div className="flex gap-2 mb-4">
+        <div className="h-6 w-12 bg-white/10 rounded-full" />
+        <div className="h-6 w-12 bg-white/10 rounded-full" />
+      </div>
+      <div className="flex gap-2">
+        <div className="h-8 w-16 bg-white/10 rounded-lg" />
+        <div className="h-8 w-16 bg-white/10 rounded-lg" />
+        <div className="h-8 w-16 bg-white/10 rounded-lg" />
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         router.replace("/login");
-      } else {
-        setUser(data.user);
-        setLoading(false);
+        return;
       }
+      setUser(data.user);
+      await fetchAutomations();
+      setLoading(false);
     });
   }, [router]);
+
+  async function fetchAutomations() {
+    const res = await fetch("/api/automations");
+    if (res.ok) {
+      const data = await res.json();
+      setAutomations(data);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setDeleting(id);
+    const res = await fetch(`/api/automations/${id}`, { method: "DELETE" });
+    if (res.ok || res.status === 204) {
+      setAutomations((prev) => prev.filter((a) => a.id !== id));
+    }
+    setDeleting(null);
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -30,8 +91,22 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <span className="w-8 h-8 border-2 border-purple-500/40 border-t-purple-400 rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0a0a0f]/80">
+          <div className="flex items-center gap-2 text-xl font-bold">
+            <Zap className="text-purple-400" size={22} />
+            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">AutoFlow AI</span>
+          </div>
+        </header>
+        <main className="flex-1 px-4 sm:px-8 py-10 max-w-5xl mx-auto w-full">
+          <div className="flex items-center justify-between mb-8">
+            <div className="h-7 w-48 bg-white/10 rounded animate-pulse" />
+            <div className="h-9 w-44 bg-white/10 rounded-xl animate-pulse" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => <CardSkeleton key={i} />)}
+          </div>
+        </main>
       </div>
     );
   }
@@ -46,7 +121,6 @@ export default function DashboardPage() {
             AutoFlow AI
           </span>
         </div>
-
         <div className="flex items-center gap-3">
           <span className="hidden sm:block text-xs text-white/40 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5">
             {user?.email}
@@ -66,7 +140,11 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <LayoutGrid size={20} className="text-purple-400" />
-            <h1 className="text-xl font-bold">My Automations</h1>
+            <h1 className="text-xl font-bold">
+              {automations.length > 0
+                ? `${automations.length} Automation${automations.length !== 1 ? "s" : ""}`
+                : "My Automations"}
+            </h1>
           </div>
           <Link
             href="/"
@@ -77,23 +155,102 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Empty state */}
-        <div className="rounded-2xl border border-white/10 border-dashed bg-white/[0.02] flex flex-col items-center justify-center py-24 px-6 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-5">
-            <Zap size={24} className="text-purple-400" />
+        {automations.length === 0 ? (
+          /* Empty state */
+          <div className="rounded-2xl border border-white/10 border-dashed bg-white/[0.02] flex flex-col items-center justify-center py-24 px-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-5">
+              <Zap size={24} className="text-purple-400" />
+            </div>
+            <h2 className="font-bold text-lg mb-2">No automations yet</h2>
+            <p className="text-white/40 text-sm max-w-xs leading-relaxed mb-6">
+              No automations yet. Create your first one!
+            </p>
+            <Link
+              href="/"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/40"
+            >
+              <Plus size={14} />
+              Create New Automation
+            </Link>
           </div>
-          <h2 className="font-bold text-lg mb-2">No automations yet</h2>
-          <p className="text-white/40 text-sm max-w-xs leading-relaxed mb-6">
-            No automations yet. Create your first one!
-          </p>
-          <Link
-            href="/"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/40"
-          >
-            <Plus size={14} />
-            Create New Automation
-          </Link>
-        </div>
+        ) : (
+          /* Automations grid */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {automations.map((automation) => (
+              <div
+                key={automation.id}
+                className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-3 hover:border-white/20 transition-colors duration-200"
+              >
+                {/* Title + status */}
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-bold text-base leading-snug flex-1">{automation.title}</h3>
+                  <span
+                    className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      automation.status === "active"
+                        ? "bg-green-500/20 text-green-300"
+                        : "bg-white/10 text-white/40"
+                    }`}
+                  >
+                    {automation.status === "active" ? "Active" : "Paused"}
+                  </span>
+                </div>
+
+                {/* Description */}
+                {automation.description && (
+                  <p className="text-white/40 text-xs leading-relaxed line-clamp-2">
+                    {automation.description}
+                  </p>
+                )}
+
+                {/* App emoji badges */}
+                {automation.apps.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {automation.apps.map((app) => (
+                      <span
+                        key={app}
+                        className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-white/10 bg-white/5 text-white/60"
+                      >
+                        {getIcon(app)} {app}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Steps + date */}
+                <div className="flex items-center gap-3 text-xs text-white/30">
+                  <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+                    {automation.steps_count} steps
+                  </span>
+                  <span>{formatDate(automation.created_at)}</span>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2 mt-auto pt-1">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 text-xs font-semibold transition-colors">
+                    <Play size={11} />
+                    Run
+                  </button>
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80 text-xs font-semibold transition-colors border border-white/10">
+                    <Pencil size={11} />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(automation.id)}
+                    disabled={deleting === automation.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-50 text-xs font-semibold transition-colors ml-auto"
+                  >
+                    {deleting === automation.id ? (
+                      <span className="w-3 h-3 border border-red-400/40 border-t-red-400 rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 size={11} />
+                    )}
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
