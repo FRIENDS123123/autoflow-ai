@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Zap, Bot, Puzzle, Rocket, ArrowRight, ChevronDown, Play, CheckCircle2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -161,9 +162,12 @@ export default function Home() {
             AutoFlow AI
           </span>
         </div>
-        <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30">
+        <Link
+          href="/signup"
+          className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30"
+        >
           Get Started
-        </button>
+        </Link>
       </header>
 
       <main className="flex-1">
@@ -400,9 +404,12 @@ export default function Home() {
                 <p className="text-white/50 mb-6 text-sm sm:text-base">
                   Join thousands of teams saving hours every week with AutoFlow AI.
                 </p>
-                <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 font-semibold transition-all duration-200 shadow-lg shadow-purple-900/40 text-sm sm:text-base">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 font-semibold transition-all duration-200 shadow-lg shadow-purple-900/40 text-sm sm:text-base"
+                >
                   Start for free <ArrowRight size={16} />
-                </button>
+                </Link>
               </div>
             </section>
           </>
