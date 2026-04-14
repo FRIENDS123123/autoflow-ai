@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Zap, Bot, Puzzle, Rocket, ArrowRight, ChevronDown, Play, CheckCircle2 } from "lucide-react";
+import { Zap, Bot, Puzzle, Rocket, ArrowRight, ChevronDown, Play, CheckCircle2, LayoutGrid, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,7 @@ function generateNodes(input: string): WorkflowNode[] {
 
 export default function Home() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
@@ -130,15 +132,34 @@ export default function Home() {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
 
-  async function handleDeploy() {
-    setSaveState("saving");
-    setSaveError("");
+  // Auth state
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ?? null);
+    });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setUser(null);
+    router.refresh();
+  }
+
+  async function handleDeploy() {
     if (!user) {
-      router.push("/login");
+      router.push("/login?message=Please sign in to save your automation");
       return;
     }
+
+    setSaveState("saving");
+    setSaveError("");
 
     const uniqueApps = Array.from(new Set(nodes.map((n) => n.app)));
     const title = prompt.length > 60 ? prompt.slice(0, 57) + "..." : prompt;
@@ -204,12 +225,34 @@ export default function Home() {
             AutoFlow AI
           </span>
         </div>
-        <Link
-          href="/signup"
-          className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30"
-        >
-          Get Started
-        </Link>
+        {user ? (
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:block text-xs text-white/40 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5">
+              {user.email}
+            </span>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-xs font-semibold transition-all duration-200"
+            >
+              <LayoutGrid size={13} />
+              Dashboard
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 rounded-lg px-3 py-1.5 transition-all duration-150"
+            >
+              <LogOut size={13} />
+              Logout
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/signup"
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30"
+          >
+            Get Started
+          </Link>
+        )}
       </header>
 
       <main className="flex-1">
