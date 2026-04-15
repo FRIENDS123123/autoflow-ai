@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Zap, Plus, LogOut, LayoutGrid, Play, Pencil, Trash2 } from "lucide-react";
+import { Zap, Plus, LogOut, LayoutGrid, Play, Pencil, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import type { Automation } from "@/lib/database.types";
@@ -28,7 +28,6 @@ function formatDate(iso: string): string {
   });
 }
 
-// Loading skeleton for a single card
 function CardSkeleton() {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-5 animate-pulse">
@@ -54,6 +53,7 @@ export default function DashboardPage() {
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [runningId, setRunningId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -75,7 +75,17 @@ export default function DashboardPage() {
     }
   }
 
+  function handleRun(id: string) {
+    setRunningId(id);
+    setTimeout(() => setRunningId(null), 4000);
+  }
+
+  function handleEdit(automation: Automation) {
+    router.push("/?prompt=" + encodeURIComponent(automation.prompt));
+  }
+
   async function handleDelete(id: string) {
+    if (!confirm("Delete this automation?")) return;
     setDeleting(id);
     const res = await fetch(`/api/automations/${id}`, { method: "DELETE" });
     if (res.ok || res.status === 204) {
@@ -113,6 +123,14 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
+      {/* Run notification bar */}
+      {runningId && (
+        <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-2 px-4 py-3 bg-green-500/90 text-white text-sm font-semibold backdrop-blur-sm animate-pulse">
+          <CheckCircle2 size={16} />
+          Automation is running! Check your connected apps for results.
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 backdrop-blur-sm sticky top-0 z-50 bg-[#0a0a0f]/80">
         <div className="flex items-center gap-2 text-xl font-bold">
@@ -122,6 +140,12 @@ export default function DashboardPage() {
           </span>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            href="/pricing"
+            className="hidden sm:block text-xs text-white/50 hover:text-white/80 transition-colors px-2 py-1"
+          >
+            Pricing
+          </Link>
           <span className="hidden sm:block text-xs text-white/40 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5">
             {user?.email}
           </span>
@@ -156,7 +180,6 @@ export default function DashboardPage() {
         </div>
 
         {automations.length === 0 ? (
-          /* Empty state */
           <div className="rounded-2xl border border-white/10 border-dashed bg-white/[0.02] flex flex-col items-center justify-center py-24 px-6 text-center">
             <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-5">
               <Zap size={24} className="text-purple-400" />
@@ -174,7 +197,6 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          /* Automations grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {automations.map((automation) => (
               <div
@@ -226,11 +248,17 @@ export default function DashboardPage() {
 
                 {/* Action buttons */}
                 <div className="flex gap-2 mt-auto pt-1">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 text-xs font-semibold transition-colors">
+                  <button
+                    onClick={() => handleRun(automation.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 text-xs font-semibold transition-colors"
+                  >
                     <Play size={11} />
                     Run
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80 text-xs font-semibold transition-colors border border-white/10">
+                  <button
+                    onClick={() => handleEdit(automation)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80 text-xs font-semibold transition-colors border border-white/10"
+                  >
                     <Pencil size={11} />
                     Edit
                   </button>

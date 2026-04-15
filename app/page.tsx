@@ -132,8 +132,14 @@ export default function Home() {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
 
-  // Auth state
+  // Auth state + read ?prompt= from URL
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlPrompt = params.get("prompt");
+    if (urlPrompt) {
+      setPrompt(urlPrompt);
+    }
+
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ?? null);
     });
@@ -219,40 +225,58 @@ export default function Home() {
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 backdrop-blur-sm sticky top-0 z-50 bg-[#0a0a0f]/80">
-        <div className="flex items-center gap-2 text-xl font-bold">
-          <Zap className="text-purple-400" size={22} />
-          <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-            AutoFlow AI
-          </span>
-        </div>
-        {user ? (
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-xs text-white/40 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5">
-              {user.email}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-xl font-bold">
+            <Zap className="text-purple-400" size={22} />
+            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              AutoFlow AI
             </span>
+          </div>
+          {user && (
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-xs font-semibold transition-all duration-200"
+              className="hidden sm:block text-xs text-white/40 hover:text-white/80 hover:underline underline-offset-2 transition-colors"
             >
-              <LayoutGrid size={13} />
-              Dashboard
+              ← Dashboard
             </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 rounded-lg px-3 py-1.5 transition-all duration-150"
-            >
-              <LogOut size={13} />
-              Logout
-            </button>
-          </div>
-        ) : (
+          )}
+        </div>
+        <div className="flex items-center gap-3">
           <Link
-            href="/signup"
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30"
+            href="/pricing"
+            className="hidden sm:block text-xs text-white/50 hover:text-white/80 transition-colors px-2 py-1"
           >
-            Get Started
+            Pricing
           </Link>
-        )}
+          {user ? (
+            <>
+              <span className="hidden sm:block text-xs text-white/40 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5">
+                {user.email}
+              </span>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-xs font-semibold transition-all duration-200"
+              >
+                <LayoutGrid size={13} />
+                Dashboard
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 rounded-lg px-3 py-1.5 transition-all duration-150"
+              >
+                <LogOut size={13} />
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/signup"
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30"
+            >
+              Get Started
+            </Link>
+          )}
+        </div>
       </header>
 
       <main className="flex-1">
@@ -538,9 +562,9 @@ export default function Home() {
           <span>© {new Date().getFullYear()} AutoFlow AI. All rights reserved.</span>
         </div>
         <div className="flex items-center gap-4">
-          <a href="#" className="hover:text-white/60 transition-colors">Privacy</a>
-          <a href="#" className="hover:text-white/60 transition-colors">Terms</a>
-          <a href="#" className="hover:text-white/60 transition-colors">GitHub</a>
+          <Link href="/privacy" className="hover:text-white/60 transition-colors">Privacy</Link>
+          <Link href="/terms" className="hover:text-white/60 transition-colors">Terms</Link>
+          <Link href="/pricing" className="hover:text-white/60 transition-colors">Pricing</Link>
         </div>
       </footer>
     </div>
