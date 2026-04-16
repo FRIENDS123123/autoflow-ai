@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Zap, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,40 +30,8 @@ export default function SignupPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      setSuccess(true);
-      setLoading(false);
+      router.push("/welcome");
     }
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col items-center justify-center px-4">
-        <Link href="/" className="flex items-center gap-2 mb-8">
-          <Zap className="text-purple-400" size={22} />
-          <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-            AutoFlow AI
-          </span>
-        </Link>
-
-        <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 text-center">
-          <div className="flex justify-center mb-4">
-            <CheckCircle2 size={40} className="text-green-400" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Check your email</h2>
-          <p className="text-white/50 text-sm leading-relaxed mb-6">
-            We sent a confirmation link to{" "}
-            <span className="text-white/80 font-medium">{email}</span>.
-            Click it to activate your account.
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 py-2.5 text-sm font-semibold transition-all duration-200"
-          >
-            Go to Sign In
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -144,6 +113,15 @@ export default function SignupPage() {
           Sign in
         </Link>
       </p>
+      <div className="mt-4 flex flex-col items-center gap-1 text-xs text-white/25">
+        <p>No credit card required · Free forever plan available</p>
+        <p>
+          By signing up you agree to our{" "}
+          <Link href="/terms" className="text-white/40 hover:text-white/60 underline underline-offset-2">Terms</Link>
+          {" "}and{" "}
+          <Link href="/privacy" className="text-white/40 hover:text-white/60 underline underline-offset-2">Privacy Policy</Link>
+        </p>
+      </div>
     </div>
   );
 }

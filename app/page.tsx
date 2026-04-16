@@ -131,6 +131,7 @@ export default function Home() {
   const [visibleCount, setVisibleCount] = useState(0);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
+  const [limitReached, setLimitReached] = useState(false);
 
   // Auth state + read ?prompt= from URL
   useEffect(() => {
@@ -164,6 +165,17 @@ export default function Home() {
       return;
     }
 
+    // Check free plan limit
+    const countRes = await fetch("/api/automations");
+    if (countRes.ok) {
+      const existing = await countRes.json();
+      if (existing.length >= 3) {
+        setLimitReached(true);
+        return;
+      }
+    }
+
+    setLimitReached(false);
     setSaveState("saving");
     setSaveError("");
 
@@ -199,6 +211,7 @@ export default function Home() {
     setVisibleCount(0);
     setSaveState("idle");
     setSaveError("");
+    setLimitReached(false);
 
     setTimeout(() => {
       const generated = generateNodes(prompt);
@@ -278,6 +291,13 @@ export default function Home() {
           )}
         </div>
       </header>
+
+      {/* Stats bar */}
+      <div className="border-b border-white/5 bg-white/[0.02] py-2.5 px-4 text-center">
+        <p className="text-white/30 text-xs">
+          ⚡ 2,847 automations created &nbsp;·&nbsp; 🔗 500+ app integrations &nbsp;·&nbsp; ⏱ Average setup time: 30 seconds
+        </p>
+      </div>
 
       <main className="flex-1">
         {/* Hero */}
@@ -483,6 +503,20 @@ export default function Home() {
                     {saveError}
                   </p>
                 )}
+
+                {limitReached && (
+                  <div className="mt-3 rounded-lg bg-purple-500/10 border border-purple-500/25 px-3 py-3">
+                    <p className="text-purple-300 text-xs font-medium mb-2">
+                      You have reached the free plan limit of 3 automations. Delete one or upgrade to Pro for unlimited.
+                    </p>
+                    <Link
+                      href="/pricing"
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 font-semibold transition-all duration-200"
+                    >
+                      View Pricing →
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -491,6 +525,51 @@ export default function Home() {
         {/* Features — hide when result is showing */}
         {status === "idle" && (
           <>
+            {/* How it works */}
+            <section className="px-4 pb-20">
+              <div className="max-w-4xl mx-auto text-center">
+                <p className="text-white/30 text-xs uppercase tracking-widest mb-3 font-semibold">How It Works</p>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-12">
+                  How AutoFlow AI Works
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 relative">
+                  {[
+                    {
+                      step: "1",
+                      icon: "✍️",
+                      title: "Describe",
+                      desc: "Write your automation in plain English — no technical knowledge needed.",
+                    },
+                    {
+                      step: "2",
+                      icon: "⚡",
+                      title: "Generate",
+                      desc: "AI builds the complete multi-step workflow instantly with all the right connections.",
+                    },
+                    {
+                      step: "3",
+                      icon: "🚀",
+                      title: "Deploy",
+                      desc: "One click to go live. Runs 24/7 automatically in the cloud.",
+                    },
+                  ].map((s) => (
+                    <div key={s.step} className="flex flex-col items-center gap-3">
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600/40 to-blue-600/30 border border-purple-500/30 flex items-center justify-center text-xl">
+                          {s.icon}
+                        </div>
+                        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center">
+                          {s.step}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-lg">{s.title}</h3>
+                      <p className="text-white/40 text-sm leading-relaxed max-w-[220px]">{s.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
             <section className="px-4 pb-24">
               <div className="max-w-5xl mx-auto">
                 <p className="text-center text-white/30 text-xs uppercase tracking-widest mb-10 font-semibold">

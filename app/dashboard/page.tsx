@@ -47,12 +47,29 @@ function CardSkeleton() {
   );
 }
 
+const EXAMPLE_PROMPTS = [
+  {
+    label: "Gmail lead → HubSpot + Slack notification",
+    prompt: "When I receive a new lead email in Gmail, add the contact to HubSpot CRM and send a notification to Slack",
+    emoji: "📧",
+  },
+  {
+    label: "Typeform response → Notion + Email",
+    prompt: "When a new Typeform response comes in, create a Notion database entry and send a follow-up email",
+    emoji: "📝",
+  },
+  {
+    label: "Stripe payment → Sheets + Thank you email",
+    prompt: "When a new Stripe payment is received, log it to Google Sheets and send a thank you email to the customer",
+    emoji: "💳",
+  },
+];
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<string | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,15 +101,22 @@ export default function DashboardPage() {
     router.push("/?prompt=" + encodeURIComponent(automation.prompt));
   }
 
-  async function handleDelete(id: string) {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this automation?")) return;
-    setDeleting(id);
-    const res = await fetch(`/api/automations/${id}`, { method: "DELETE" });
-    if (res.ok || res.status === 204) {
-      setAutomations((prev) => prev.filter((a) => a.id !== id));
+    try {
+      const response = await fetch(`/api/automations/${id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setAutomations((prev) => prev.filter((a) => a.id !== id));
+      } else {
+        alert("Failed to delete. Please try again.");
+      }
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Failed to delete. Please try again.");
     }
-    setDeleting(null);
-  }
+  };
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -125,7 +149,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
       {/* Run notification bar */}
       {runningId && (
-        <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-2 px-4 py-3 bg-green-500/90 text-white text-sm font-semibold backdrop-blur-sm animate-pulse">
+        <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-2 px-4 py-3 bg-green-500/90 text-white text-sm font-semibold backdrop-blur-sm">
           <CheckCircle2 size={16} />
           Automation is running! Check your connected apps for results.
         </div>
@@ -180,23 +204,45 @@ export default function DashboardPage() {
         </div>
 
         {automations.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 border-dashed bg-white/[0.02] flex flex-col items-center justify-center py-24 px-6 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-5">
-              <Zap size={24} className="text-purple-400" />
+          /* Welcome empty state */
+          <div className="flex flex-col items-center text-center py-16 px-6">
+            <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-5 text-3xl">
+              👋
             </div>
-            <h2 className="font-bold text-lg mb-2">No automations yet</h2>
-            <p className="text-white/40 text-sm max-w-xs leading-relaxed mb-6">
-              No automations yet. Create your first one!
+            <h2 className="font-bold text-2xl mb-2">Welcome to AutoFlow AI!</h2>
+            <p className="text-white/40 text-sm max-w-sm leading-relaxed mb-10">
+              Create your first automation in 30 seconds. Pick an example below or write your own.
             </p>
+
+            {/* Example cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl mb-8">
+              {EXAMPLE_PROMPTS.map((ex) => (
+                <button
+                  key={ex.label}
+                  onClick={() => router.push("/?prompt=" + encodeURIComponent(ex.prompt))}
+                  className="rounded-2xl border border-white/10 bg-white/5 hover:border-purple-500/40 hover:bg-purple-500/5 p-5 text-left transition-all duration-200 group"
+                >
+                  <span className="text-2xl mb-3 block">{ex.emoji}</span>
+                  <p className="text-sm font-medium text-white/80 group-hover:text-white leading-snug">
+                    {ex.label}
+                  </p>
+                  <p className="text-xs text-purple-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Click to use this →
+                  </p>
+                </button>
+              ))}
+            </div>
+
             <Link
               href="/"
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold transition-all duration-200 shadow-lg shadow-purple-900/40"
             >
               <Plus size={14} />
-              Create New Automation
+              Create Custom Automation
             </Link>
           </div>
         ) : (
+          /* Automations grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {automations.map((automation) => (
               <div
@@ -264,14 +310,9 @@ export default function DashboardPage() {
                   </button>
                   <button
                     onClick={() => handleDelete(automation.id)}
-                    disabled={deleting === automation.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-50 text-xs font-semibold transition-colors ml-auto"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-semibold transition-colors ml-auto"
                   >
-                    {deleting === automation.id ? (
-                      <span className="w-3 h-3 border border-red-400/40 border-t-red-400 rounded-full animate-spin" />
-                    ) : (
-                      <Trash2 size={11} />
-                    )}
+                    <Trash2 size={11} />
                     Delete
                   </button>
                 </div>
